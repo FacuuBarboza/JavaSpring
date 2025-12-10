@@ -1,13 +1,19 @@
 package com.informatorio.info_spring.service.usuario;
 
+import com.informatorio.info_spring.dto.perfil.PerfilUsuarioDto;
 import com.informatorio.info_spring.dto.usuario.UsuarioCreateDto;
 import com.informatorio.info_spring.dto.usuario.UsuarioDto;
+import com.informatorio.info_spring.exception.ResourceNotFoundException;
 import com.informatorio.info_spring.mapper.perfil.PerfilMapper;
 import com.informatorio.info_spring.mapper.usuario.UsuarioMapper;
 import com.informatorio.info_spring.model.PerfilUsuario;
 import com.informatorio.info_spring.model.Usuario;
+import com.informatorio.info_spring.repository.specification.UsuarioSpecifications;
 import com.informatorio.info_spring.repository.usuario.UsuarioRepository;
+import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,6 +21,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@Slf4j
 public class UsuarioServiceImpl implements UsuarioService {
 
     private UsuarioRepository usuarioRepository;
@@ -25,9 +32,23 @@ public class UsuarioServiceImpl implements UsuarioService {
     }
 
     @Override
-    public List<UsuarioDto> findAll() {
+    public List<UsuarioDto> findAll(String nombre, String email, String colorFavorito) {
         // Lógica para obtener todos los usuarios
-        List<Usuario> usuarioList = usuarioRepository.findAll();
+        Specification<Usuario> spec = Specification.unrestricted();
+
+        if ( nombre != null && !nombre.isBlank()){
+            spec = spec.and(UsuarioSpecifications.byNombre(nombre));
+        }
+
+        if ( email != null && !email.isBlank()){
+            spec = spec.and(UsuarioSpecifications.byEmail(email));
+        }
+
+        if (colorFavorito != null && !colorFavorito.isBlank()) {
+            spec = spec.and(UsuarioSpecifications.byColorFavorito(colorFavorito));
+        }
+
+        List<Usuario> usuarioList = usuarioRepository.findAll(spec);
 
         return UsuarioMapper.toDtoList(usuarioList);
 
@@ -99,5 +120,24 @@ public class UsuarioServiceImpl implements UsuarioService {
             return true;
         }
         return false;
+    }
+
+    @Override
+    @Transactional
+    public PerfilUsuarioDto updatePerfil(UUID id, PerfilUsuarioDto perfilUsuarioDto) {
+        log.info("Actualizando el perfil del usuario con ID: {}", id);
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con ID: " + id));
+
+        if (usuario.getPerfil() == null) {
+            PerfilUsuario nuevoPerfil = PerfilMapper.toEntity(perfilUsuarioDto);
+            usuario.setPerfil(nuevoPerfil);
+        } else {
+            PerfilMapper.updateEntity(usuario.getPerfil(), perfilUsuarioDto);
+        }
+
+        Usuario usuarioActualizado = usuarioRepository.save(usuario);
+        log.info("Perfil del usuario con ID: {} actualizado exitosamente", id);
+        return PerfilMapper.toDto(usuarioActualizado.getPerfil());
     }
 }

@@ -1,5 +1,6 @@
 package com.informatorio.info_spring.controller;
 
+import com.informatorio.info_spring.dto.perfil.PerfilUsuarioDto;
 import com.informatorio.info_spring.dto.usuario.UsuarioCreateDto;
 import com.informatorio.info_spring.dto.usuario.UsuarioDto;
 import com.informatorio.info_spring.service.usuario.UsuarioService;
@@ -9,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,9 +29,13 @@ public class UsuarioController {
     }
 
     @GetMapping
-    public List<UsuarioDto> getUsuarios(){
+    public List<UsuarioDto> getUsuarios(
+            @RequestParam(required = false) String nombre,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String colorFavorito
+    ){
 
-        List<UsuarioDto> usuarios = usuarioService.findAll();
+        List<UsuarioDto> usuarios = usuarioService.findAll(nombre, email, colorFavorito);
 
         return usuarios;
     }
@@ -54,7 +60,9 @@ public class UsuarioController {
             @Valid @RequestBody UsuarioCreateDto usuarioCreateDto
             ){
        UsuarioDto usuarioCreado = usuarioService.crearUsuario(usuarioCreateDto);
-       return ResponseEntity.ok(usuarioCreado);
+       return ResponseEntity.
+               created( URI.create("/api/v1/usuarios/" + usuarioCreado.getId()) )
+               .body( usuarioCreado );
     }
 
     @PutMapping("/{id}")
@@ -68,6 +76,15 @@ public class UsuarioController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(usuarioDto);
+    }
+
+    @PutMapping("/{id}/perfil")
+    public ResponseEntity<PerfilUsuarioDto> updatePerfil(
+            @PathVariable UUID id,
+            @Valid @RequestBody PerfilUsuarioDto perfilUsuarioDto
+    ) {
+        PerfilUsuarioDto updatedPerfil = usuarioService.updatePerfil(id, perfilUsuarioDto);
+        return ResponseEntity.ok(updatedPerfil);
     }
 
     @DeleteMapping("/{id}")

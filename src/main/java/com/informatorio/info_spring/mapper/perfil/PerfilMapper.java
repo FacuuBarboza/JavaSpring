@@ -32,6 +32,14 @@ public final class PerfilMapper {
         return perfilUsuario;
     }
 
+    public static void updateEntity(PerfilUsuario perfilUsuario, PerfilUsuarioDto perfilUsuarioDto) {
+        if (perfilUsuario == null || perfilUsuarioDto == null) return;
+
+        perfilUsuario.setBio(perfilUsuarioDto.getBiografia());
+        perfilUsuario.setColorFavorito(perfilUsuarioDto.getColorFavorito());
+        perfilUsuario.setFraseDelDia(perfilUsuarioDto.getFraseDelDia());
+    }
+
 
 
 }
